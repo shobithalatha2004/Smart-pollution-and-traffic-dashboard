@@ -1,216 +1,194 @@
-'use strict';
+export { parseAst, parseAstAsync } from 'rollup/parseAst';
+import { a as arraify, i as isInNodeModules, D as DevEnvironment } from './chunks/dep-Du8ES4Eo.js';
+export { B as BuildEnvironment, f as build, m as buildErrorMessage, g as createBuilder, F as createFilter, h as createIdResolver, I as createLogger, n as createRunnableDevEnvironment, c as createServer, y as createServerHotChannel, w as createServerModuleRunner, x as createServerModuleRunnerTransport, d as defineConfig, v as fetchModule, j as formatPostcssSourceMap, L as isFileLoadingAllowed, K as isFileServingAllowed, q as isRunnableDevEnvironment, l as loadConfigFromFile, M as loadEnv, E as mergeAlias, C as mergeConfig, z as moduleRunnerTransform, A as normalizePath, o as optimizeDeps, p as perEnvironmentPlugin, b as perEnvironmentState, k as preprocessCSS, e as preview, r as resolveConfig, N as resolveEnvPrefix, G as rollupVersion, u as runnerImport, J as searchForWorkspaceRoot, H as send, s as sortUserPlugins, t as transformWithEsbuild } from './chunks/dep-Du8ES4Eo.js';
+export { defaultAllowedOrigins, DEFAULT_CLIENT_CONDITIONS as defaultClientConditions, DEFAULT_CLIENT_MAIN_FIELDS as defaultClientMainFields, DEFAULT_SERVER_CONDITIONS as defaultServerConditions, DEFAULT_SERVER_MAIN_FIELDS as defaultServerMainFields, VERSION as version } from './constants.js';
+export { version as esbuildVersion } from 'esbuild';
+import 'node:fs';
+import 'node:path';
+import 'node:fs/promises';
+import 'node:url';
+import 'node:util';
+import 'node:perf_hooks';
+import 'node:module';
+import 'node:crypto';
+import 'picomatch';
+import 'path';
+import 'fs';
+import 'fdir';
+import 'node:child_process';
+import 'node:http';
+import 'node:https';
+import 'tty';
+import 'util';
+import 'net';
+import 'events';
+import 'url';
+import 'http';
+import 'stream';
+import 'os';
+import 'child_process';
+import 'node:os';
+import 'node:net';
+import 'node:dns';
+import 'vite/module-runner';
+import 'node:buffer';
+import 'module';
+import 'node:readline';
+import 'node:process';
+import 'node:events';
+import 'tinyglobby';
+import 'crypto';
+import 'node:assert';
+import 'node:v8';
+import 'node:worker_threads';
+import 'https';
+import 'tls';
+import 'zlib';
+import 'buffer';
+import 'assert';
+import 'node:querystring';
+import 'node:zlib';
 
-Object.defineProperty(exports, '__esModule', { value: true });
-
-var picocolors = require('picocolors');
-var jsTokens = require('js-tokens');
-var helperValidatorIdentifier = require('@babel/helper-validator-identifier');
-
-function isColorSupported() {
-  return (typeof process === "object" && (process.env.FORCE_COLOR === "0" || process.env.FORCE_COLOR === "false") ? false : picocolors.isColorSupported
+const CSS_LANGS_RE = (
+  // eslint-disable-next-line regexp/no-unused-capturing-group
+  /\.(css|less|sass|scss|styl|stylus|pcss|postcss|sss)(?:$|\?)/
+);
+const isCSSRequest = (request) => CSS_LANGS_RE.test(request);
+class SplitVendorChunkCache {
+  cache;
+  constructor() {
+    this.cache = /* @__PURE__ */ new Map();
+  }
+  reset() {
+    this.cache = /* @__PURE__ */ new Map();
+  }
+}
+function splitVendorChunk(options = {}) {
+  const cache = options.cache ?? new SplitVendorChunkCache();
+  return (id, { getModuleInfo }) => {
+    if (isInNodeModules(id) && !isCSSRequest(id) && staticImportedByEntry(id, getModuleInfo, cache.cache)) {
+      return "vendor";
+    }
+  };
+}
+function staticImportedByEntry(id, getModuleInfo, cache, importStack = []) {
+  if (cache.has(id)) {
+    return cache.get(id);
+  }
+  if (importStack.includes(id)) {
+    cache.set(id, false);
+    return false;
+  }
+  const mod = getModuleInfo(id);
+  if (!mod) {
+    cache.set(id, false);
+    return false;
+  }
+  if (mod.isEntry) {
+    cache.set(id, true);
+    return true;
+  }
+  const someImporterIs = mod.importers.some(
+    (importer) => staticImportedByEntry(
+      importer,
+      getModuleInfo,
+      cache,
+      importStack.concat(id)
+    )
   );
+  cache.set(id, someImporterIs);
+  return someImporterIs;
 }
-const compose = (f, g) => v => f(g(v));
-function buildDefs(colors) {
-  return {
-    keyword: colors.cyan,
-    capitalized: colors.yellow,
-    jsxIdentifier: colors.yellow,
-    punctuator: colors.yellow,
-    number: colors.magenta,
-    string: colors.green,
-    regex: colors.magenta,
-    comment: colors.gray,
-    invalid: compose(compose(colors.white, colors.bgRed), colors.bold),
-    gutter: colors.gray,
-    marker: compose(colors.red, colors.bold),
-    message: compose(colors.red, colors.bold),
-    reset: colors.reset
-  };
-}
-const defsOn = buildDefs(picocolors.createColors(true));
-const defsOff = buildDefs(picocolors.createColors(false));
-function getDefs(enabled) {
-  return enabled ? defsOn : defsOff;
-}
-
-const sometimesKeywords = new Set(["as", "async", "from", "get", "of", "set"]);
-const NEWLINE$1 = /\r\n|[\n\r\u2028\u2029]/;
-const BRACKET = /^[()[\]{}]$/;
-let tokenize;
-{
-  const JSX_TAG = /^[a-z][\w-]*$/i;
-  const getTokenType = function (token, offset, text) {
-    if (token.type === "name") {
-      if (helperValidatorIdentifier.isKeyword(token.value) || helperValidatorIdentifier.isStrictReservedWord(token.value, true) || sometimesKeywords.has(token.value)) {
-        return "keyword";
-      }
-      if (JSX_TAG.test(token.value) && (text[offset - 1] === "<" || text.slice(offset - 2, offset) === "</")) {
-        return "jsxIdentifier";
-      }
-      if (token.value[0] !== token.value[0].toLowerCase()) {
-        return "capitalized";
-      }
-    }
-    if (token.type === "punctuator" && BRACKET.test(token.value)) {
-      return "bracket";
-    }
-    if (token.type === "invalid" && (token.value === "@" || token.value === "#")) {
-      return "punctuator";
-    }
-    return token.type;
-  };
-  tokenize = function* (text) {
-    let match;
-    while (match = jsTokens.default.exec(text)) {
-      const token = jsTokens.matchToToken(match);
-      yield {
-        type: getTokenType(token, match.index, text),
-        value: token.value
-      };
-    }
-  };
-}
-function highlight(text) {
-  if (text === "") return "";
-  const defs = getDefs(true);
-  let highlighted = "";
-  for (const {
-    type,
-    value
-  } of tokenize(text)) {
-    if (type in defs) {
-      highlighted += value.split(NEWLINE$1).map(str => defs[type](str)).join("\n");
-    } else {
-      highlighted += value;
-    }
-  }
-  return highlighted;
-}
-
-let deprecationWarningShown = false;
-const NEWLINE = /\r\n|[\n\r\u2028\u2029]/;
-function getMarkerLines(loc, source, opts) {
-  const startLoc = Object.assign({
-    column: 0,
-    line: -1
-  }, loc.start);
-  const endLoc = Object.assign({}, startLoc, loc.end);
-  const {
-    linesAbove = 2,
-    linesBelow = 3
-  } = opts || {};
-  const startLine = startLoc.line;
-  const startColumn = startLoc.column;
-  const endLine = endLoc.line;
-  const endColumn = endLoc.column;
-  let start = Math.max(startLine - (linesAbove + 1), 0);
-  let end = Math.min(source.length, endLine + linesBelow);
-  if (startLine === -1) {
-    start = 0;
-  }
-  if (endLine === -1) {
-    end = source.length;
-  }
-  const lineDiff = endLine - startLine;
-  const markerLines = {};
-  if (lineDiff) {
-    for (let i = 0; i <= lineDiff; i++) {
-      const lineNumber = i + startLine;
-      if (!startColumn) {
-        markerLines[lineNumber] = true;
-      } else if (i === 0) {
-        const sourceLength = source[lineNumber - 1].length;
-        markerLines[lineNumber] = [startColumn, sourceLength - startColumn + 1];
-      } else if (i === lineDiff) {
-        markerLines[lineNumber] = [0, endColumn];
-      } else {
-        const sourceLength = source[lineNumber - i].length;
-        markerLines[lineNumber] = [0, sourceLength];
-      }
-    }
-  } else {
-    if (startColumn === endColumn) {
-      if (startColumn) {
-        markerLines[startLine] = [startColumn, 0];
-      } else {
-        markerLines[startLine] = true;
-      }
-    } else {
-      markerLines[startLine] = [startColumn, endColumn - startColumn];
+function splitVendorChunkPlugin() {
+  const caches = [];
+  function createSplitVendorChunk(output, config) {
+    const cache = new SplitVendorChunkCache();
+    caches.push(cache);
+    const build = config.build ?? {};
+    const format = output.format;
+    if (!build.ssr && !build.lib && format !== "umd" && format !== "iife") {
+      return splitVendorChunk({ cache });
     }
   }
   return {
-    start,
-    end,
-    markerLines
-  };
-}
-function codeFrameColumns(rawLines, loc, opts = {}) {
-  const shouldHighlight = opts.forceColor || isColorSupported() && opts.highlightCode;
-  const defs = getDefs(shouldHighlight);
-  const lines = rawLines.split(NEWLINE);
-  const {
-    start,
-    end,
-    markerLines
-  } = getMarkerLines(loc, lines, opts);
-  const hasColumns = loc.start && typeof loc.start.column === "number";
-  const numberMaxWidth = String(end).length;
-  const highlightedLines = shouldHighlight ? highlight(rawLines) : rawLines;
-  let frame = highlightedLines.split(NEWLINE, end).slice(start, end).map((line, index) => {
-    const number = start + 1 + index;
-    const paddedNumber = ` ${number}`.slice(-numberMaxWidth);
-    const gutter = ` ${paddedNumber} |`;
-    const hasMarker = markerLines[number];
-    const lastMarkerLine = !markerLines[number + 1];
-    if (hasMarker) {
-      let markerLine = "";
-      if (Array.isArray(hasMarker)) {
-        const markerSpacing = line.slice(0, Math.max(hasMarker[0] - 1, 0)).replace(/[^\t]/g, " ");
-        const numberOfMarkers = hasMarker[1] || 1;
-        markerLine = ["\n ", defs.gutter(gutter.replace(/\d/g, " ")), " ", markerSpacing, defs.marker("^").repeat(numberOfMarkers)].join("");
-        if (lastMarkerLine && opts.message) {
-          markerLine += " " + defs.message(opts.message);
+    name: "vite:split-vendor-chunk",
+    config(config) {
+      let outputs = config.build?.rollupOptions?.output;
+      if (outputs) {
+        outputs = arraify(outputs);
+        for (const output of outputs) {
+          const viteManualChunks = createSplitVendorChunk(output, config);
+          if (viteManualChunks) {
+            if (output.manualChunks) {
+              if (typeof output.manualChunks === "function") {
+                const userManualChunks = output.manualChunks;
+                output.manualChunks = (id, api) => {
+                  return userManualChunks(id, api) ?? viteManualChunks(id, api);
+                };
+              } else {
+                console.warn(
+                  "(!) the `splitVendorChunk` plugin doesn't have any effect when using the object form of `build.rollupOptions.output.manualChunks`. Consider using the function form instead."
+                );
+              }
+            } else {
+              output.manualChunks = viteManualChunks;
+            }
+          }
         }
+      } else {
+        return {
+          build: {
+            rollupOptions: {
+              output: {
+                manualChunks: createSplitVendorChunk({}, config)
+              }
+            }
+          }
+        };
       }
-      return [defs.marker(">"), defs.gutter(gutter), line.length > 0 ? ` ${line}` : "", markerLine].join("");
-    } else {
-      return ` ${defs.gutter(gutter)}${line.length > 0 ? ` ${line}` : ""}`;
-    }
-  }).join("\n");
-  if (opts.message && !hasColumns) {
-    frame = `${" ".repeat(numberMaxWidth + 1)}${opts.message}\n${frame}`;
-  }
-  if (shouldHighlight) {
-    return defs.reset(frame);
-  } else {
-    return frame;
-  }
-}
-function index (rawLines, lineNumber, colNumber, opts = {}) {
-  if (!deprecationWarningShown) {
-    deprecationWarningShown = true;
-    const message = "Passing lineNumber and colNumber is deprecated to @babel/code-frame. Please use `codeFrameColumns`.";
-    if (process.emitWarning) {
-      process.emitWarning(message, "DeprecationWarning");
-    } else {
-      const deprecationError = new Error(message);
-      deprecationError.name = "DeprecationWarning";
-      console.warn(new Error(message));
-    }
-  }
-  colNumber = Math.max(colNumber, 0);
-  const location = {
-    start: {
-      column: colNumber,
-      line: lineNumber
+    },
+    buildStart() {
+      caches.forEach((cache) => cache.reset());
     }
   };
-  return codeFrameColumns(rawLines, location, opts);
 }
 
-exports.codeFrameColumns = codeFrameColumns;
-exports.default = index;
-exports.highlight = highlight;
-//# sourceMappingURL=index.js.map
+function createFetchableDevEnvironment(name, config, context) {
+  if (typeof Request === "undefined" || typeof Response === "undefined") {
+    throw new TypeError(
+      "FetchableDevEnvironment requires a global `Request` and `Response` object."
+    );
+  }
+  if (!context.handleRequest) {
+    throw new TypeError(
+      "FetchableDevEnvironment requires a `handleRequest` method during initialisation."
+    );
+  }
+  return new FetchableDevEnvironment(name, config, context);
+}
+function isFetchableDevEnvironment(environment) {
+  return environment instanceof FetchableDevEnvironment;
+}
+class FetchableDevEnvironment extends DevEnvironment {
+  _handleRequest;
+  constructor(name, config, context) {
+    super(name, config, context);
+    this._handleRequest = context.handleRequest;
+  }
+  async dispatchFetch(request) {
+    if (!(request instanceof Request)) {
+      throw new TypeError(
+        "FetchableDevEnvironment `dispatchFetch` must receive a `Request` object."
+      );
+    }
+    const response = await this._handleRequest(request);
+    if (!(response instanceof Response)) {
+      throw new TypeError(
+        "FetchableDevEnvironment `context.handleRequest` must return a `Response` object."
+      );
+    }
+    return response;
+  }
+}
+
+export { DevEnvironment, createFetchableDevEnvironment, isCSSRequest, isFetchableDevEnvironment, splitVendorChunk, splitVendorChunkPlugin };
