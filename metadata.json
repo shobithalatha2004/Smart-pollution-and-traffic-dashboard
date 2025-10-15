@@ -1,0 +1,5 @@
+{
+  "name": "Urban Intelligence Dashboard",
+  "description": "An interactive, AI-powered dashboard for real-time traffic and pollution monitoring in smart cities. It provides predictive analytics and intelligent solutions for urban management, ensuring a mobile-friendly and visually appealing user experience.",
+  "requestFramePermissions": ["geolocation"]
+}
