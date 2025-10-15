@@ -1,20 +1,3 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+The Smart Traffic and Pollution Dashboard is a web-based intelligent monitoring system designed to help cities manage traffic congestion and air pollution using data visualization, AI insights, and interactive analytics. It integrates real-time data from multiple sources such as sensors, APIs, and AI models to display meaningful insights about: Traffic density Pollution levels (CO₂, NO₂, PM2.5, etc.) Weather conditions Parking availability This project aims to support smart city management, providing authorities and citizens with a clear, data-driven view of urban conditions.
 
-# Run and deploy your AI Studio app
-
-This contains everything you need to run your app locally.
-
-View your app in AI Studio: https://ai.studio/apps/drive/1pAcoZAqj_QZGIghzQKZTQMEMUOl9t5N9
-
-## Run Locally
-
-**Prerequisites:**  Node.js
-
-
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+Objective: To monitor and visualize real-time traffic and air pollution data. To provide predictive insights using AI (Gemini API). To display key metrics like AQI (Air Quality Index), pollutant concentration, and traffic flow. To simulate traffic signal optimization and parking management. To enable smart city planning using environmental analytics.
